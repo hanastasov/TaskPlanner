@@ -20,7 +20,9 @@ import {
     CellType,
     SortingDirection,
     ISortingOptions,
-    IgxIconButtonDirective
+    IgxIconButtonDirective,
+    IgxSummaryOperand,
+    IgxSummaryResult
 } from 'igniteui-angular';
 import { TasksDataService } from '../services/tasks.service';
 import { MEMBERS, GITHUB_TASKS } from '../services/tasksData';
@@ -236,9 +238,9 @@ export class TaskPlannerComponent implements OnInit {
         { field: 'number', header: 'ID', width: '120px', dataType: 'number', formatter: this.formatID, sortable: false, sortStrategy: this.defaultSort },
         { field: 'title', header: 'Issue', width: '380px', dataType: 'string', filterable: true, editable: true, sortStrategy: this.defaultSort, required: true, minlength: 4 },
         { field: 'milestone', header: 'Milestone', width: '120px', dataType: 'string', editable: true, sortable: true, sortStrategy: this.milestoneSort, hidden: true, },
-        { field: 'labels', header: 'Status', width: '130px', dataType: 'string', sortable: true, filterable: true, editable: true, cellClasses: this.statusClasses, sortStrategy: this.statusSort },
+        { field: 'labels', header: 'Status', width: '200px', dataType: 'string', sortable: true, filterable: true, editable: true, summaries: StatusSummary, cellClasses: this.statusClasses, hasSummary: true, sortStrategy: this.statusSort },
         { field: 'assignee.login', header: 'Assignee', width: '180px', dataType: 'string', editable: true, filterable: true, sortable: true, sortStrategy: this.defaultSort },
-        { field: 'createdAt', header: 'Created', width: '130px', dataType: 'date', sortable: true, filterable: true, editable: false, sortStrategy: this.defaultSort, hasSummary: true  },
+        { field: 'createdAt', header: 'Created', width: '220px', dataType: 'date', sortable: true, filterable: true, editable: false, sortStrategy: this.defaultSort, hasSummary: true  },
         { field: 'deadline', header: 'Deadline', width: '130px', dataType: 'date', sortable: true, filterable: true, editable: true, sortStrategy: this.defaultSort },
         { field: 'estimation', header: 'Estimation', width: '120px', dataType: 'number', editable: true, cellClasses: this.delayedClasses, sortStrategy: this.defaultSort },
         { field: 'hours_spent', header: 'Hours Spent', width: '120px', dataType: 'number', editable: true, cellClasses: this.delayedClasses, sortStrategy: this.defaultSort },
@@ -540,8 +542,10 @@ export class TaskPlannerComponent implements OnInit {
     }
 
     public onItemDropped(ev) {
-        this.toggleGridBodyHighlight();
-        this.addBacklogItem(this.editTaskForm);
+        if (Object.keys(this.editTaskForm).length) {
+            this.toggleGridBodyHighlight();
+            this.addBacklogItem(this.editTaskForm);
+        }
     }
 
     public addBacklogItem(item: ITask) {
@@ -736,6 +740,29 @@ export class LabelsFilteringStrategy extends FilteringStrategy {
             val = new PriorityLabelPipe().transform(rec);
         }
         return cond.logic(val, expr.searchVal, expr.ignoreCase);
+    }
+}
+
+/**  */
+export class StatusSummary extends IgxSummaryOperand {
+    constructor () {
+        super();
+    }
+
+    operate(data?: any[]): IgxSummaryResult[] {
+        const result = super.operate(data);
+        const sl = new StatusLabelPipe();
+        result.push({
+            key: 'in-progress',
+            label: 'in-development',
+            summaryResult: data.filter(rec => sl.transform(rec) === 'in-development').length
+        });
+        result.push({
+            key: 'resolved',
+            label: 'resolved',
+            summaryResult: data.filter(rec => sl.transform(rec) === 'resolved').length
+        })
+        return result;
     }
 }
 
